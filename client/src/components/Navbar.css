@@ -1,0 +1,119 @@
+.navbar {
+  background-color: #fdf6e3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 500;   /* navbar iznad sadržaja */
+  overflow: visible; /* dozvoli da dropdown izlazi ispod */
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-links a,
+.navbar-links .nav-link {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.navbar-links a:hover,
+.navbar-links .nav-link:hover {
+  color: #800020;
+}
+
+.navbar-links .active-link {
+  border-bottom: 2px solid #800020;
+  padding-bottom: 2px;
+  font-weight: 600;
+}
+
+.login-btn {
+  padding: 8px 16px;
+  background-color: #800020;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #a30028;
+}
+
+/* Dropdown meni */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropbtn {
+  cursor: pointer;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  padding: 8px 0;
+}
+
+.dropbtn:hover {
+  color: #800020;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;   /* defaultno ulevo */
+  background-color: #fdf6e3;
+  min-width: 200px;
+  max-width: 90vw; /* sprečava da iskoči van ekrana */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  z-index: 1000;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 10px 16px;
+  color: #333;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+}
+
+.dropdown-content a:hover {
+  background-color: #f0e6d6;
+  color: #800020;
+  border-radius: 6px;
+}
+
+.dropdown:hover .dropdown-content {
+  display: flex;
+}
+
+/* Ako je dropdown blizu desne ivice (User, Admin) */
+.dropdown.right .dropdown-content {
+  left: auto;
+  right: 0; /* otvara ulevo umesto udesno */
+}

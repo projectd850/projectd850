@@ -1,0 +1,88 @@
+# 📖 Dokumentacija – ProjectD850
+
+## 1. Vizija projekta
+
+ProjectD850 je centralni hub za fotografe i ljubitelje fotografije. Cilj je kreirati jedinstvenu platformu gde će korisnici moći da:
+
+* kupuju i prodaju fotografije (print i digitalne verzije),
+* grade portfolio i lični brend,
+* uče kroz tutorijale, članke i edukativne resurse,
+* povezuju se i sarađuju kroz zajednicu,
+* administratori upravljaju sadržajem, korisnicima i transakcijama.
+
+---
+
+## 2. Uloge korisnika
+
+* **Guest (posetilac)** – nema nalog, vidi samo javne stranice.
+* **User (registrovani korisnik / fotograf / kupac)** – može da dodaje, prodaje, kupuje, komentariše, učestvuje u zajednici.
+* **Admin (administrator)** – upravlja korisnicima, sadržajem, sistemom i finansijama.
+
+---
+
+## 3. Informaciona arhitektura i stranice
+
+### 3.1. Javne stranice (Guest)
+
+* **Home** – osnovne informacije o ProjectD850, istaknute fotografije, linkovi ka drugim sekcijama.
+* **Portfolios (Korisnički portfoliji)** – stranica na kojoj se prikazuju portfoliji svih korisnika koji imaju nalog na platformi i odluče da svoj portfolio prikažu javno.
+
+  * Svaki portfolio ima javni profilnu stranicu korisnika.
+  * Na javnom portfoliju prikazuju se odabrane fotografije koje korisnik postavi kako bi se predstavio (preview kolekcija).
+  * Korisnici mogu sami da izaberu da li će njihov portfolio biti **javnog** ili **privatnog** tipa.
+* **About** – priča o ProjectD850, misija i vizija.
+* **Contact** – kontakt forma i osnovne informacije.
+* **Auth stranice**: Login, Signup, Forgot Password.
+
+### 3.2. Korisničke stranice (User)
+
+* **Dashboard** – pregled naloga (statistika, kupovine, prodaje).
+* **My Portfolio** – lični portfolio fotografa, mogućnost dodavanja i uređivanja slika.
+* **Marketplace** – prodavnica fotografija (kupovina i prodaja).
+* **Community** – forumi, članci, tutorijali, komentari.
+* **Messages** – privatna komunikacija između korisnika.
+* **Profile Settings** – uređivanje ličnih podataka, lozinke, profila, kao i podešavanje vidljivosti portfolija (javno/privatno).
+* **Orders / Transactions** – pregled narudžbina i istorije kupovina.
+
+### 3.3. Administratorske stranice (Admin)
+
+* **Admin Dashboard** – pregled sistema (statistike, broj korisnika, prodaje, izveštaji).
+* **User Management** – pregled i uređivanje korisnika (ban, role upgrade, verifikacija).
+* **Content Management** – upravljanje fotografijama, člancima, komentarima.
+* **Transactions / Payments** – praćenje i odobravanje isplata.
+* **System Settings** – podešavanje sajta (SEO, server opcije, internacionalizacija).
+
+---
+
+## 4. Dozvole po ulozi
+
+| Stranica / Funkcija      |   Guest  |   User   |   Admin  |
+| ------------------------ | :------: | :------: | :------: |
+| Home                     |     ✅    |     ✅    |     ✅    |
+| Portfolios (korisnički)  |     ✅    |     ✅    |     ✅    |
+| Marketplace (kupovina)   |     ❌    |     ✅    |     ✅    |
+| My Portfolio (dodavanje) |     ❌    |     ✅    |     ✅    |
+| Community (članci/forum) | ✅ (read) | ✅ (full) | ✅ (full) |
+| Messages                 |     ❌    |     ✅    |     ✅    |
+| Orders / Transactions    |     ❌    |     ✅    |     ✅    |
+| Profile Settings         |     ❌    |     ✅    |     ✅    |
+| Admin Dashboard          |     ❌    |     ❌    |     ✅    |
+| User Management          |     ❌    |     ❌    |     ✅    |
+| Content Management       |     ❌    |     ❌    |     ✅    |
+| System Settings          |     ❌    |     ❌    |     ✅    |
+
+---
+
+## 5. Dalji koraci
+
+1. Razraditi korisničke tokove (User Flows) za ključne akcije: registracija, upload fotografije, kupovina, prodaja.
+2. Definisati API rute i modele podataka (korisnici, fotografije, transakcije, poruke, članci).
+3. Osmisliti strukturu baza podataka (MySQL).
+4. Planirati frontend komponente (React) po stranicama.
+5. Dodati SEO i optimizaciju performansi (lazy load, caching, responsive design).
+6. Definisati sistem notifikacija (email, in-app).
+7. Planirati internacionalizaciju (EN, CZ, SR).
+
+---
+
+📌 Ovaj dokument predstavlja **prvu verziju specifikacije za ProjectD850**. Kasnije ćemo dodavati detaljnije sekcije (API dokumentacija, ER dijagram baze, UI/UX wireframe, plan razvoja).
