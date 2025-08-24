@@ -1,0 +1,37 @@
+# Node & deps
+node_modules/
+
+# Build output (za Vite/CRA/Next/Express TS build itd.)
+dist/
+build/
+.out/
+.next/
+
+# Env fajlovi
+.env
+.env.*.local
+
+# Logovi, izveštaji
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Editori & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Uploads/temp (ako budeš koristio)
+tmp/
+uploads/
