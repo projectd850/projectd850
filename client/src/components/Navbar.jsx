@@ -21,8 +21,8 @@ const Navbar = () => {
   const navClass = ({ isActive }) => (isActive ? "nav-link active-link" : "nav-link");
 
   // (primer) ako imaš auth/role state iz konteksta:
-  const isLoggedIn = false; // zameni realnim stanjem
-  const isAdmin = false;    // zameni realnim stanjem
+  const isLoggedIn = true; // zameni realnim stanjem
+  const isAdmin = true;    // zameni realnim stanjem
 
   // Close on click outside dropdown
   useEffect(() => {

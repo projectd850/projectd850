@@ -1,0 +1,247 @@
+/* Tema u skladu sa ostatkom sajta:
+   - Pozadina: bež #fdf6e3 (kao u PortfolioDetail)
+   - Akcent: burgundy #800020
+   - Tamni hero sa “strelicom” sečenjem, kao na ostalim stranicama
+*/
+
+:root{
+  --bg: #fdf6e3;
+  --ink: #222;
+  --muted: #6b6b6b;
+  --accent: #800020;
+  --card: #f0e6d6;
+}
+
+.my-portfolio-page{
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* HERO */
+.my-portfolio-hero{
+  position: relative;
+  min-height: 56vh;
+  background: url("../assets/portfolio2.jpg") center/cover no-repeat, #0a0a0a;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 56px 16px 90px;
+}
+
+.my-portfolio-hero .hero-inner{
+  max-width: 980px;
+  padding: 0 16px;
+}
+
+.hero-title{
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hero-subtitle{
+  color: #eee;
+  margin: 8px 0 20px;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.hero-cta{
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary{
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.btn-outline{
+  border: 2px solid #fff;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.my-portfolio-hero .hero-cut{
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 84px;
+  background: var(--bg);
+  /* strelica (sasečeni donji rub) */
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+
+/* TOOLS */
+.portfolio-tools{
+  max-width: 1200px;
+  margin: 22px auto 10px;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.filters{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip{
+  background: var(--card);
+  color: var(--ink);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease;
+}
+.chip:hover{ transform: translateY(-1px); }
+.chip.active{
+  background: var(--accent);
+  color: #fff;
+}
+
+.search input{
+  background: #fff;
+  border: 2px solid #e9dcc7;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 260px;
+  outline: none;
+}
+.search input:focus{
+  border-color: var(--accent);
+}
+
+/* GRID */
+.portfolio-grid{
+  max-width: 1200px;
+  margin: 8px auto 40px;
+  padding: 0 20px;
+
+  /* “masonry-like” raspored preko column-count */
+  column-count: 1;
+  column-gap: 16px;
+}
+@media (min-width: 640px){ .portfolio-grid{ column-count: 2; } }
+@media (min-width: 960px){ .portfolio-grid{ column-count: 3; } }
+@media (min-width: 1280px){ .portfolio-grid{ column-count: 4; } }
+
+.grid-item{
+  break-inside: avoid;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ddd;
+  cursor: zoom-in;
+  outline: none;
+}
+.grid-item img{
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform .35s ease;
+}
+.grid-item:hover img{
+  transform: scale(1.05);
+}
+
+.grid-caption{
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 10px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cap-title{ font-weight: 700; }
+.cap-meta{ font-size: .9rem; opacity: .95; }
+
+/* prazno stanje */
+.empty-state{
+  background: var(--card);
+  padding: 28px;
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* LIGHTBOX */
+.lightbox{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  display: grid;
+  grid-template-columns: 64px 1fr 64px;
+  align-items: center;
+  z-index: 1000;
+}
+.lightbox .close{
+  position: absolute; top: 14px; right: 18px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 36px;
+  cursor: pointer;
+}
+.lightbox .nav{
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 48px;
+  cursor: pointer;
+  opacity: .9;
+}
+.lightbox .nav:hover{ opacity: 1; }
+
+.lightbox-inner{
+  max-width: min(92vw, 1400px);
+  margin: 0 auto;
+  text-align: center;
+}
+.lightbox-inner img{
+  max-width: 100%;
+  max-height: 82vh;
+  border-radius: 10px;
+}
+.lb-caption{
+  color: #eee;
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ABOUT */
+.portfolio-about{
+  max-width: 980px;
+  margin: 0 auto 60px;
+  padding: 0 20px;
+}
+.portfolio-about h2{
+  margin: 0 0 8px;
+}
+.portfolio-about p{
+  color: var(--muted);
+  margin-bottom: 14px;
+}

@@ -1,0 +1,212 @@
+:root{
+  --bg: #fdf6e3;
+  --ink: #222;
+  --muted: #6b6b6b;
+  --accent: #800020;
+  --card: #f0e6d6;
+  --white: #fff;
+}
+
+.dash-page{
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* HERO sa strelicom */
+.dash-hero{
+  position: relative;
+  min-height: 34vh;
+  background: url("/images/hero-dashboard.jpg") center/cover no-repeat, #0a0a0a;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 44px 16px 84px;
+}
+.hero-inner{ max-width: 980px; padding: 0 16px; }
+.hero-title{
+  margin: 0; color: var(--white);
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.hero-subtitle{ color: #eee; margin: 8px 0 12px; }
+.hero-cta{
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+.btn-primary{
+  background: var(--accent); color: var(--white);
+  border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; text-decoration: none;
+}
+.btn-outline{
+  border: 2px solid var(--white); color: var(--white);
+  padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600;
+}
+.hero-cut{
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 80px; background: var(--bg);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+
+/* QUICK ACTIONS */
+.dash-actions{
+  max-width: 1200px;
+  margin: 14px auto 6px; padding: 0 20px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 880px){
+  .dash-actions{ grid-template-columns: repeat(4, 1fr); }
+}
+.qa-btn{
+  background: var(--white);
+  border: 2px solid #efe5d3;
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 800;
+  display: block;
+  text-align: center;
+}
+
+/* KPIs */
+.dash-kpis{
+  max-width: 1200px;
+  margin: 8px auto 12px; padding: 0 20px;
+  display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 880px){
+  .dash-kpis{ grid-template-columns: repeat(4, 1fr); }
+}
+.kpi-card{
+  background: var(--white);
+  border: 2px solid #efe5d3;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid; gap: 6px;
+}
+.kpi-label{ color: var(--muted); font-weight: 700; }
+.kpi-value{ font-size: 1.4rem; }
+.kpi-trend{ color: var(--muted); }
+.kpi-trend.up{ color: #1f8f4e; font-weight: 700; }
+
+/* GRID */
+.dash-grid{
+  max-width: 1200px; margin: 8px auto 60px; padding: 0 20px;
+  display: grid; gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 980px){
+  .dash-grid{
+    grid-template-columns: 1.2fr .8fr;
+  }
+}
+.card{
+  background: var(--white);
+  border: 2px solid #efe5d3;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid; gap: 12px;
+}
+.card-title{ margin: 0; }
+
+/* Portfolio stats */
+.portfolio .stat-row{
+  display: grid; gap: 12px; grid-template-columns: 1fr 1fr;
+}
+.stat{ background: #fffdf8; border: 2px solid #f2e9d9; border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
+.stat-top{ display: grid; gap: 2px; }
+.spark-wrap{ display: grid; gap: 4px; align-content: start; }
+.spark{ width: 100%; height: 40px; }
+.actions{ display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-outline-accent{
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-ghost{
+  background: transparent; border: 2px solid var(--card);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; text-decoration: none; color: var(--ink);
+}
+
+/* Recent orders */
+.orders .table{ display: grid; gap: 8px; }
+.orders .tr{
+  display: grid; gap: 8px; align-items: center;
+  grid-template-columns: 1.3fr 1.6fr 1fr .8fr .8fr;
+  background: #fffdf8; border: 2px solid #f2e9d9; border-radius: 12px; padding: 8px 10px;
+}
+@media (max-width: 720px){
+  .orders .tr{
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "id total"
+      "when when"
+      "customer customer"
+      "status status";
+  }
+  .orders .tr .id{ grid-area: id; }
+  .orders .tr .total{ grid-area: total; }
+  .orders .tr .when{ grid-area: when; }
+  .orders .tr .customer{ grid-area: customer; }
+  .orders .tr .badge{ grid-area: status; }
+}
+.orders .id{
+  color: var(--accent); font-weight: 800; text-decoration: underline;
+}
+.badge{
+  display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800;
+  background: var(--card);
+}
+.badge.pending{ background: #fff1c2; }
+.badge.paid{ background: #d6ffe2; }
+.badge.shipped{ background: #d3f2ff; }
+.badge.completed{ background: #e2d6ff; }
+.badge.canceled{ background: #ffe0e0; }
+.badge.refunded{ background: #ffd8b5; }
+
+/* Messages */
+.msg-list{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.msg{
+  display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start;
+  background: #fffdf8; border: 2px solid #f2e9d9; border-radius: 12px; padding: 8px 10px;
+}
+.msg.unread{ border-color: var(--accent); }
+.avatar{
+  width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--white);
+  display: grid; place-items: center; font-weight: 900;
+}
+.msg .top{ display: flex; justify-content: space-between; gap: 8px; }
+.msg .text{ margin: 2px 0 0; }
+.muted{ color: var(--muted); }
+
+/* Calendar */
+.calendar .week{ list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.calendar .week li{
+  display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center;
+  background: #fffdf8; border: 2px solid #f2e9d9; border-radius: 12px; padding: 6px 10px;
+}
+.calendar .day{ font-weight: 800; }
+.calendar .evt{ color: var(--muted); }
+.calendar .evt.pill{
+  background: var(--card); padding: 4px 8px; border-radius: 999px; color: var(--ink); font-weight: 700;
+}
+
+/* Tasks */
+.task-list{ list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.chk{ display: inline-grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: center; }
+.chk input{ display: none; }
+.chk .box{
+  width: 18px; height: 18px; border-radius: 4px; border: 2px solid #e9dcc7; background: #fff; position: relative;
+}
+.chk input:checked + .box{
+  background: var(--accent); border-color: var(--accent);
+}
+.chk input:checked + .box::after{
+  content: ""; position: absolute; left: 4px; top: 1px; width: 6px; height: 10px; border: 2px solid #fff; border-top: 0; border-left: 0; transform: rotate(45deg);
+}
+.chk .txt.done{ text-decoration: line-through; color: var(--muted); }

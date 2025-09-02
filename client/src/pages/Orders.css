@@ -1,0 +1,240 @@
+:root{
+  --bg: #fdf6e3;
+  --ink: #222;
+  --muted: #6b6b6b;
+  --accent: #800020;
+  --card: #f0e6d6;
+  --white: #fff;
+}
+
+.orders-page{
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* HERO sa “strelicom” */
+.orders-hero{
+  position: relative;
+  min-height: 34vh;
+  background: url("/images/hero-orders.jpg") center/cover no-repeat, #0a0a0a;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 44px 16px 84px;
+}
+.hero-inner{ max-width: 980px; padding: 0 16px; }
+.hero-title{
+  margin: 0; color: var(--white);
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.hero-subtitle{ color: #eee; margin: 8px 0 0; }
+.hero-cut{
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 80px; background: var(--bg);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+
+/* KPI */
+.orders-kpi{
+  max-width: 1200px;
+  margin: 18px auto 8px;
+  padding: 0 20px;
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 880px){
+  .orders-kpi{ grid-template-columns: repeat(4, 1fr); }
+}
+.kpi-card{
+  background: var(--white);
+  border: 2px solid #efe5d3;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid; gap: 6px;
+}
+.kpi-label{ color: var(--muted); font-weight: 700; }
+.kpi-value{ font-size: 1.4rem; }
+
+/* Tools */
+.orders-tools{
+  max-width: 1200px;
+  margin: 8px auto 10px;
+  padding: 0 20px;
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+}
+.left-tools{ display: flex; gap: 8px; flex-wrap: wrap; }
+.right-tools{ display: flex; gap: 8px; flex-wrap: wrap; }
+.orders-tools select,
+.orders-tools input[type="date"],
+.orders-tools input[type="search"]{
+  background: var(--white);
+  border: 2px solid #e9dcc7;
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+}
+.orders-tools input:focus,
+.orders-tools select:focus{ border-color: var(--accent); }
+
+.btn-outline-accent{
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-ghost{
+  background: transparent; border: 2px solid var(--card);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700;
+}
+.btn-primary{
+  background: var(--accent); color: var(--white);
+  border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700;
+}
+
+/* Bulk */
+.orders-bulk{
+  max-width: 1200px;
+  margin: 4px auto 8px;
+  padding: 0 20px;
+  display: flex; gap: 12px; align-items: center; justify-content: space-between;
+}
+.bulk-actions{ display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Table */
+.orders-table{
+  max-width: 1200px;
+  margin: 0 auto 16px;
+  padding: 0 20px;
+  background: var(--white);
+  border: 2px solid #efe5d3;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.table-head, .row{
+  display: grid; grid-template-columns: 44px 1.2fr 1.2fr 2fr 1fr 1fr 1.6fr;
+  gap: 10px; align-items: center;
+}
+.table-head{
+  padding: 10px 12px;
+  background: #fffaf1;
+  border-bottom: 2px solid #efe5d3;
+  font-weight: 800;
+}
+.table-body .row{
+  padding: 10px 12px;
+  border-bottom: 1px dashed #efe5d3;
+}
+.table-body .row:last-child{ border-bottom: none; }
+
+.checkbox{ display: inline-flex; gap: 8px; align-items: center; }
+.link-id{
+  text-align: left; background: transparent; border: none; color: var(--accent);
+  text-decoration: underline; cursor: pointer; font-weight: 800;
+}
+.customer{ display: grid; gap: 2px; }
+.muted{ color: var(--muted); }
+
+.badge{
+  display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800;
+  background: var(--card);
+}
+.badge.pending{ background: #fff1c2; }
+.badge.paid{ background: #d6ffe2; }
+.badge.shipped{ background: #d3f2ff; }
+.badge.completed{ background: #e2d6ff; }
+.badge.canceled{ background: #ffe0e0; }
+.badge.refunded{ background: #ffd8b5; }
+
+.actions{ display: flex; gap: 8px; justify-content: flex-end; }
+.cell-actions{ text-align: right; }
+
+.empty-state{ padding: 18px; text-align: center; color: var(--muted); }
+
+/* Pagination */
+.orders-pagination{
+  max-width: 1200px; margin: 0 auto 60px; padding: 0 20px;
+  display: flex; gap: 12px; align-items: center; justify-content: center;
+}
+
+/* Drawer (order detail) */
+.order-drawer{
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  display: grid; place-items: end center; z-index: 1000;
+}
+.drawer-inner{
+  width: min(920px, 96vw);
+  background: var(--white);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  max-height: 88vh; overflow: auto;
+  animation: slideUp .22s ease-out;
+  border: 2px solid #efe5d3;
+}
+@keyframes slideUp{
+  from{ transform: translateY(12px); opacity: .7; }
+  to{ transform: translateY(0); opacity: 1; }
+}
+.drawer-head{
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 2px solid #efe5d3;
+}
+.drawer-head h3{ margin: 0; }
+.close{
+  background: transparent; border: none; font-size: 32px; cursor: pointer;
+}
+.drawer-grid{
+  display: grid; gap: 16px; padding: 14px;
+}
+@media (min-width: 880px){
+  .drawer-grid{ grid-template-columns: 1.1fr 1fr .8fr; }
+}
+.drawer-section{
+  background: #fffdf8; border: 2px solid #f2e9d9; border-radius: 12px; padding: 12px;
+}
+.drawer-section h4{ margin: 0 0 8px; }
+.items{
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 10px;
+}
+.item-title{ display: flex; flex-direction: column; }
+.item-meta{
+  display: flex; justify-content: space-between; align-items: center; margin-top: 4px;
+}
+.totals{
+  display: grid; gap: 6px; margin-top: 10px;
+}
+.totals div{
+  display: flex; justify-content: space-between; align-items: center;
+}
+.totals .grand{
+  border-top: 1px dashed #eadfcb; padding-top: 8px; font-size: 1.1rem;
+}
+.drawer-actions{
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+}
+
+/* Responsive tabela => kartice */
+@media (max-width: 880px){
+  .table-head{ display: none; }
+  .row{
+    grid-template-columns: 32px 1fr auto;
+    grid-template-areas:
+      "check id actions"
+      "check date actions"
+      "check customer actions"
+      "check status actions"
+      "check total actions";
+    gap: 6px;
+  }
+  .row .checkbox{ grid-area: check; align-self: start; }
+  .row .link-id{ grid-area: id; }
+  .row .muted{ grid-area: date; }
+  .row .customer{ grid-area: customer; }
+  .row .badge{ grid-area: status; }
+  .row strong{ grid-area: total; }
+  .row .actions{ grid-area: actions; align-self: start; }
+}
