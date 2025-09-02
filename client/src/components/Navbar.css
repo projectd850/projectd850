@@ -1,119 +1,182 @@
-.navbar {
-  background-color: #fdf6e3;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 32px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+/* ===== Tokens ===== */
+:root{
+  --bg:#fdf6e3;
+  --text:#333;
+  --brand:#800020;
+  --brandHover:#a30028;
+
+  --radius:12px;
+  --shadow:0 2px 8px rgba(0,0,0,.06);
+
+  --padX: clamp(12px, 4vw, 28px);
+  --h: 64px; /* visina headera */
+}
+
+/* Header container (sticky + blur) */
+.site-header{
   position: sticky;
   top: 0;
-  z-index: 500;   /* navbar iznad sadržaja */
-  overflow: visible; /* dozvoli da dropdown izlazi ispod */
+  z-index: 500;
+  backdrop-filter: saturate(140%) blur(6px);
 }
 
-.navbar-logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
+.navbar{
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* left | center | right */
+  align-items: center;
+  gap: 12px;
+  min-height: var(--h);
+  padding: 8px var(--padX);
+  background: color-mix(in oklab, var(--bg) 92%, white 8%);
+  box-shadow: var(--shadow);
 }
 
-.navbar-links {
+/* LEFT: logo */
+.navbar__logo{
+  font-size: clamp(1.1rem, 3.2vw, 1.35rem);
+  font-weight: 800;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* CENTER: primary links (mobile-first: skriveno, otvara se preko hamburgera) */
+.navbar__links{
+  display: none;
+  gap: 14px;
+  list-style: none;
+  padding: 0; margin: 0;
+}
+.navbar__links.is-open{
+  display: grid;
+  grid-column: 1 / -1;
+  padding: 8px 0 6px;
+}
+.navbar__links li{ display: inline-flex; }
+
+.nav-link{
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  padding: 8px 6px;
+  border-radius: 8px;
+  transition: color .2s ease, background-color .2s ease;
+}
+.nav-link:hover{ color: var(--brand); background: #f0e6d6; }
+.active-link{
+  color: var(--brand);
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+
+/* RIGHT: actions */
+.navbar__actions{
   display: flex;
   align-items: center;
-  gap: 24px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  gap: 10px;
 }
 
-.navbar-links a,
-.navbar-links .nav-link {
+/* Buttons (Login/Signup) */
+.btn{
+  display: inline-flex;
+  align-items: center; justify-content: center;
   text-decoration: none;
-  color: #333;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: transform .15s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
 }
-
-.navbar-links a:hover,
-.navbar-links .nav-link:hover {
-  color: #800020;
+.btn--ghost{
+  background: transparent;
+  color: var(--brand);
+  border-color: var(--brand);
 }
-
-.navbar-links .active-link {
-  border-bottom: 2px solid #800020;
-  padding-bottom: 2px;
-  font-weight: 600;
+.btn--ghost:hover{
+  background:#f0e6d6;
+  transform: translateY(-1px);
 }
-
-.login-btn {
-  padding: 8px 16px;
-  background-color: #800020;
+.btn--primary{
+  background: var(--brand);
   color: #fff;
-  border: none;
-  border-radius: 6px;
+  border-color: var(--brand);
+  box-shadow: 0 8px 22px rgba(128,0,32,.2);
+}
+.btn--primary:hover{
+  background: var(--brandHover);
+  transform: translateY(-1px);
+}
+
+/* Dropdowns (klik radi i na touch) */
+.dropdown{ position: relative; }
+.dropbtn{
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid #ddd;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
+  font-weight: 700;
+  color: var(--text);
 }
+.dropbtn:hover{ background:#f7f2e9; }
 
-.login-btn:hover {
-  background-color: #a30028;
-}
-
-/* Dropdown meni */
-.dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropbtn {
-  cursor: pointer;
-  color: #333;
-  font-weight: 500;
-  transition: color 0.3s ease;
-  padding: 8px 0;
-}
-
-.dropbtn:hover {
-  color: #800020;
-}
-
-.dropdown-content {
-  display: none;
+.dropdown__menu{
   position: absolute;
-  top: 100%;
-  left: 0;   /* defaultno ulevo */
-  background-color: #fdf6e3;
-  min-width: 200px;
-  max-width: 90vw; /* sprečava da iskoči van ekrana */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  border-radius: 6px;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 6px;
+  display: none;
   z-index: 1000;
-  flex-direction: column;
-  overflow-x: hidden;
 }
+.dropdown__menu.open{ display: block; }
 
-.dropdown-content a {
+.dropdown__item{
   display: block;
-  padding: 10px 16px;
-  color: #333;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text);
   text-decoration: none;
-  transition: background-color 0.3s ease;
   white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease;
+}
+.dropdown__item:hover{
+  background: #f0e6d6;
+  color: var(--brand);
 }
 
-.dropdown-content a:hover {
-  background-color: #f0e6d6;
-  color: #800020;
-  border-radius: 6px;
+/* Hamburger */
+.hamburger{
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 42px; height: 42px;
+  align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
 }
-
-.dropdown:hover .dropdown-content {
-  display: flex;
+.hamburger span{
+  width: 20px; height: 2px; background: #222; display: block;
+  transition: transform .2s ease, opacity .2s ease;
 }
+.hamburger.is-open span:nth-child(1){ transform: translateY(6px) rotate(45deg); }
+.hamburger.is-open span:nth-child(2){ opacity: 0; }
+.hamburger.is-open span:nth-child(3){ transform: translateY(-6px) rotate(-45deg); }
 
-/* Ako je dropdown blizu desne ivice (User, Admin) */
-.dropdown.right .dropdown-content {
-  left: auto;
-  right: 0; /* otvara ulevo umesto udesno */
+/* ===== Desktop layout ===== */
+@media (min-width: 960px){
+  .navbar{
+    grid-template-columns: auto 1fr auto; /* logo | links | actions */
+  }
+  .navbar__links{
+    display: inline-flex;
+    justify-self: center;
+  }
+  .navbar__links.is-open{ display: inline-flex; grid-column: auto; padding: 0; }
+  .hamburger{ display: none; }
 }

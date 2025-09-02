@@ -1,69 +1,92 @@
-.portfolio-section {
-  display: flex;
-  flex-direction: column; /* sve ide nadole */
-  min-height: 100vh;
-  background-color: #fdf6e3;
+/* ===== Tokens / base ===== */
+:root {
+  --bg: #fdf6e3;
+  --text: #000;
+  --muted: #333;
+  --padX: clamp(1rem, 4vw, 3rem);
+  --padY: clamp(1rem, 4vw, 3rem);
+
+  --h1: clamp(1.75rem, 4vw, 2.5rem);
+  --p:  clamp(1rem, 2.5vw, 1.1rem);
+
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(0,0,0,.08);
+  --overlay: rgba(0,0,0,.5);
 }
 
-/* HERO sekcija (nekadašnja "leva" strana, sada puna širina) */
+.portfolio-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh; /* mobile safe viewport */
+  background: var(--bg);
+}
+
+/* ===== HERO ===== */
 .portfolio-left {
   width: 100%;
-  padding: 0; /* hero ide edge-to-edge */
+  padding: 0;
   display: block;
   box-sizing: border-box;
 }
 
 .portfolio-left .image-container {
   width: 100%;
-  height: 60vh; /* visina hero sekcije */
-  min-height: 360px;
-  max-height: 720px;
-  /* Strelica na dnu (V oblik) */
-  clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%);
+  /* aspect-ratio stabilizuje layout dok se slika učitava, bolje od fiksne vh */
+  aspect-ratio: 16/9;
+  min-height: 260px;
+  max-height: 70vh;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* V‑strelica: uključujemo je tek na većim ekranima da ne “seče” sadržaj na mobilnom */
+  clip-path: none;
+}
+
+@media (min-width: 768px) {
+  .portfolio-left .image-container {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%);
+  }
 }
 
 .portfolio-left img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  max-width: 100%;
-  max-height: 100%;
+  display: block;
 }
 
-/* Lista (nekadašnja "desna" strana), sada ispod hero-a */
+/* ===== LISTA / TEKST ===== */
 .portfolio-right {
   width: 100%;
-  padding: 48px;
+  padding: var(--padY) var(--padX);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  animation: fadeInText 1.2s ease-out both;
+  gap: 16px;
+  animation: fadeInText 700ms ease-out both;
 }
 
 .portfolio-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 16px;
-  color: #000;
+  font-size: var(--h1);
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
 }
 
 .portfolio-description {
-  font-size: 1.1rem;
-  margin-bottom: 24px;
-  color: #333;
-  max-width: 720px;
+  font-size: var(--p);
+  margin: 0 0 8px;
+  color: var(--muted);
+  max-width: 72ch;
+  line-height: 1.6;
 }
 
-/* Galerija kartica portfolija */
+/* ===== GALERIJA ===== */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* fleksibilnija mreža: kartice rastu do 1fr, minimum taman za mobilni */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 16px;
   width: 100%;
 }
@@ -71,63 +94,76 @@
 .gallery-item {
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
-  text-decoration: none; /* NavLink */
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  outline: none;
+  background: #000; /* da se fade-in slike ne vide kao “praznina” */
+}
+
+/* stabilna visina kartica na svim uređajima */
+.gallery-item figure {
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: grid;
+  place-items: stretch;
 }
 
 .gallery-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
   display: block;
+  transform: scale(1.0001); /* mikro-fix protiv hairline praznina u nekim browserima */
+  transition: transform .35s ease;
 }
 
-.gallery-item:hover img {
-  transform: scale(1.05);
+/* Hover efekti samo kada je dostupan pravi hover (ne na touch) */
+@media (hover: hover) and (pointer: fine) {
+  .gallery-item:hover img {
+    transform: scale(1.05);
+  }
+  .gallery-item:hover .overlay {
+    opacity: 1;
+  }
 }
 
+.gallery-item:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0,0,0,.2), 0 0 0 6px rgba(0,0,0,.15);
+}
+
+/* Overlay naslov */
 .gallery-item .overlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: auto 0 0 0;
+  background: var(--overlay);
   color: #fff;
-  padding: 8px;
-  font-size: 0.95rem;
+  padding: 10px 12px;
+  font-size: .95rem;
   text-align: center;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity .25s ease;
 }
 
-.gallery-item:hover .overlay {
-  opacity: 1;
+/* Uvek pokaži overlay na mobilnom (nema hover) */
+@media (hover: none) {
+  .gallery-item .overlay { opacity: 1; }
 }
 
-/* Fade-in animacija */
+/* ===== Animacije ===== */
 @keyframes fadeInText {
-  0% { opacity: 0; transform: translateY(40px); }
-  100% { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive */
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-right { animation: none; }
+  .gallery-item img { transition: none; }
+}
+
+/* ===== Sitni responsive tweakovi ===== */
 @media (max-width: 768px) {
-  .portfolio-right {
-    padding: 24px;
-  }
-
-  .portfolio-title {
-    font-size: 2rem;
-  }
-
-  .portfolio-description {
-    font-size: 1rem;
-  }
-
-  .portfolio-left .image-container {
-    height: 45vh;
-    min-height: 260px;
-  }
+  .gallery-grid { gap: 12px; }
 }
