@@ -1,0 +1,961 @@
+-- ProjectD850 / ProjectFocus – MySQL schema (v1)
+-- Goal: very complete, future‑proof tables (some may be overprovisioned by design)
+-- Engine/charset
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- You can set these once for the DB:
+-- CREATE DATABASE projectfocus /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */;
+-- USE projectfocus;
+
+/*
+Conventions
+- id: BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+- timestamps: created_at, updated_at (CURRENT_TIMESTAMP), deleted_at (nullable, soft delete)
+- all tables InnoDB, utf8mb4_0900_ai_ci
+- FK names: fk_<child>__<parent>
+- "extra" columns included intentionally for future needs
+*/
+
+-- =========================
+-- SYSTEM / SECURITY
+-- =========================
+CREATE TABLE users (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  email_normalized VARCHAR(255) GENERATED ALWAYS AS (LOWER(email)) VIRTUAL,
+  phone VARCHAR(32) NULL,
+  password_hash VARCHAR(255) NULL,
+  password_algo VARCHAR(50) NULL,
+  is_email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  is_phone_verified TINYINT(1) NOT NULL DEFAULT 0,
+  status ENUM('active','disabled','banned','pending') NOT NULL DEFAULT 'active',
+  last_login_at DATETIME NULL,
+  last_login_ip VARBINARY(16) NULL,
+  failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  require_password_change TINYINT(1) NOT NULL DEFAULT 0,
+  twofa_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  twofa_method ENUM('totp','webauthn','sms','email') NULL,
+  locale VARCHAR(10) NULL,
+  timezone VARCHAR(64) NULL,
+  referral_code VARCHAR(32) UNIQUE NULL,
+  marketing_opt_in TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE user_profiles (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  display_name VARCHAR(100) NULL,
+  first_name VARCHAR(100) NULL,
+  last_name VARCHAR(100) NULL,
+  bio TEXT NULL,
+  avatar_url VARCHAR(500) NULL,
+  cover_url VARCHAR(500) NULL,
+  website_url VARCHAR(500) NULL,
+  instagram VARCHAR(100) NULL,
+  facebook VARCHAR(100) NULL,
+  twitter VARCHAR(100) NULL,
+  tiktok VARCHAR(100) NULL,
+  youtube VARCHAR(100) NULL,
+  birthdate DATE NULL,
+  gender ENUM('male','female','other','prefer_not_say') NULL,
+  country_code CHAR(2) NULL,
+  city VARCHAR(100) NULL,
+  public_email VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_user_profiles__users FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE roles (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE permissions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  description VARCHAR(255) NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE role_permissions (
+  role_id BIGINT UNSIGNED NOT NULL,
+  permission_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (role_id, permission_id),
+  CONSTRAINT fk_role_permissions__roles FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_role_permissions__permissions FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE user_roles (
+  user_id BIGINT UNSIGNED NOT NULL,
+  role_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (user_id, role_id),
+  CONSTRAINT fk_user_roles__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_roles__roles FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE refresh_tokens (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  user_agent VARCHAR(255) NULL,
+  ip VARBINARY(16) NULL,
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_refresh_tokens__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE sessions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  jwt_id CHAR(36) NOT NULL,
+  issued_at DATETIME NOT NULL,
+  expires_at DATETIME NOT NULL,
+  ip VARBINARY(16) NULL,
+  user_agent VARCHAR(255) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_sessions__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uk_sessions_jwt (jwt_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE oauth_providers (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  provider VARCHAR(50) NOT NULL UNIQUE, -- google, apple, facebook, etc.
+  client_id VARCHAR(255) NULL,
+  client_secret VARCHAR(255) NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB;
+
+CREATE TABLE oauth_accounts (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  provider_id BIGINT UNSIGNED NOT NULL,
+  provider_user_id VARCHAR(255) NOT NULL,
+  access_token VARCHAR(1000) NULL,
+  refresh_token VARCHAR(1000) NULL,
+  token_expires_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_provider_user (provider_id, provider_user_id),
+  CONSTRAINT fk_oauth_accounts__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_oauth_accounts__providers FOREIGN KEY (provider_id) REFERENCES oauth_providers(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE api_keys (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  owner_user_id BIGINT UNSIGNED NULL,
+  key_hash CHAR(64) NOT NULL UNIQUE,
+  label VARCHAR(100) NULL,
+  scopes JSON NULL,
+  last_used_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  revoked_at DATETIME NULL,
+  CONSTRAINT fk_api_keys__users FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE audit_logs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  actor_user_id BIGINT UNSIGNED NULL,
+  action VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id BIGINT UNSIGNED NULL,
+  metadata JSON NULL,
+  ip VARBINARY(16) NULL,
+  user_agent VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_entity (entity_type, entity_id),
+  CONSTRAINT fk_audit_logs__users FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- =========================
+-- ADDRESSES / GEO / SETTINGS
+-- =========================
+CREATE TABLE countries (
+  code CHAR(2) PRIMARY KEY, -- ISO 3166-1 alpha-2
+  name VARCHAR(100) NOT NULL,
+  vat_rate_default DECIMAL(5,2) NULL,
+  currency_code CHAR(3) NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE currencies (
+  code CHAR(3) PRIMARY KEY, -- ISO 4217
+  symbol VARCHAR(8) NULL,
+  name VARCHAR(50) NOT NULL,
+  decimals TINYINT NOT NULL DEFAULT 2
+) ENGINE=InnoDB;
+
+CREATE TABLE addresses (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  label VARCHAR(50) NULL, -- Home, Studio, etc.
+  company VARCHAR(150) NULL,
+  vat_number VARCHAR(32) NULL,
+  first_name VARCHAR(100) NULL,
+  last_name VARCHAR(100) NULL,
+  phone VARCHAR(32) NULL,
+  line1 VARCHAR(255) NOT NULL,
+  line2 VARCHAR(255) NULL,
+  city VARCHAR(100) NOT NULL,
+  postal_code VARCHAR(20) NOT NULL,
+  state_region VARCHAR(100) NULL,
+  country_code CHAR(2) NOT NULL,
+  is_default_billing TINYINT(1) NOT NULL DEFAULT 0,
+  is_default_shipping TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_addresses__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_addresses__countries FOREIGN KEY (country_code) REFERENCES countries(code) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE app_settings (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  key_name VARCHAR(100) NOT NULL UNIQUE,
+  value_text TEXT NULL,
+  value_json JSON NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE feature_flags (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  flag_key VARCHAR(100) NOT NULL UNIQUE,
+  description VARCHAR(255) NULL,
+  enabled_global TINYINT(1) NOT NULL DEFAULT 0,
+  rollout JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- =========================
+-- SOCIAL / PORTFOLIO / MEDIA
+-- =========================
+CREATE TABLE portfolios (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  owner_user_id BIGINT UNSIGNED NOT NULL,
+  slug VARCHAR(150) NOT NULL UNIQUE,
+  title VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  cover_image_url VARCHAR(500) NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 1,
+  sort_mode ENUM('manual','newest','popular') NOT NULL DEFAULT 'manual',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_portfolios__users FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE albums (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  portfolio_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  cover_image_url VARCHAR(500) NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 1,
+  position INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_albums__portfolios FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE media_assets (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  uploader_user_id BIGINT UNSIGNED NOT NULL,
+  storage_provider ENUM('local','s3','cloudflare_r2','gcs','azure') NOT NULL DEFAULT 'local',
+  bucket VARCHAR(200) NULL,
+  object_key VARCHAR(500) NOT NULL, -- path or key
+  mime_type VARCHAR(150) NOT NULL,
+  byte_size BIGINT UNSIGNED NOT NULL,
+  width INT NULL,
+  height INT NULL,
+  checksum_sha256 CHAR(64) NULL,
+  blurhash VARCHAR(100) NULL,
+  focal_point_x DECIMAL(5,2) NULL, -- percentage 0-100
+  focal_point_y DECIMAL(5,2) NULL,
+  ai_labels JSON NULL,
+  visibility ENUM('private','unlisted','public') NOT NULL DEFAULT 'private',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  INDEX idx_media_assets_uploader (uploader_user_id, created_at),
+  CONSTRAINT fk_media_assets__users FOREIGN KEY (uploader_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE photos (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  album_id BIGINT UNSIGNED NULL,
+  portfolio_id BIGINT UNSIGNED NULL,
+  asset_id BIGINT UNSIGNED NOT NULL, -- link to media_assets
+  title VARCHAR(200) NULL,
+  description TEXT NULL,
+  camera_make VARCHAR(100) NULL,
+  camera_model VARCHAR(100) NULL,
+  lens_model VARCHAR(150) NULL,
+  iso INT NULL,
+  focal_length_mm DECIMAL(6,2) NULL,
+  aperture DECIMAL(4,2) NULL, -- f-number
+  shutter_s VARCHAR(12) NULL, -- e.g. "1/125", "0.8"
+  exposure_comp_ev DECIMAL(4,2) NULL,
+  white_balance_k INT NULL,
+  capture_at DATETIME NULL,
+  location_lat DECIMAL(10,7) NULL,
+  location_lng DECIMAL(10,7) NULL,
+  location_name VARCHAR(200) NULL,
+  orientation ENUM('landscape','portrait','square') NULL,
+  color_profile VARCHAR(64) NULL,
+  nsfw TINYINT(1) NOT NULL DEFAULT 0,
+  is_public TINYINT(1) NOT NULL DEFAULT 1,
+  allow_comments TINYINT(1) NOT NULL DEFAULT 1,
+  position INT UNSIGNED NOT NULL DEFAULT 0,
+  views_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  likes_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_photos__albums FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL,
+  CONSTRAINT fk_photos__portfolios FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE SET NULL,
+  CONSTRAINT fk_photos__assets FOREIGN KEY (asset_id) REFERENCES media_assets(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE photo_derivatives (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  photo_id BIGINT UNSIGNED NOT NULL,
+  type ENUM('thumbnail','web','web_hd','print','raw','watermark') NOT NULL,
+  storage_provider ENUM('local','s3','cloudflare_r2','gcs','azure') NOT NULL,
+  bucket VARCHAR(200) NULL,
+  object_key VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(150) NOT NULL,
+  byte_size BIGINT UNSIGNED NOT NULL,
+  width INT NULL,
+  height INT NULL,
+  checksum_sha256 CHAR(64) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_photo_derivative (photo_id, type),
+  CONSTRAINT fk_photo_derivatives__photos FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE tags (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  description VARCHAR(255) NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE photo_tags (
+  photo_id BIGINT UNSIGNED NOT NULL,
+  tag_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (photo_id, tag_id),
+  CONSTRAINT fk_photo_tags__photos FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_photo_tags__tags FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE follows (
+  follower_user_id BIGINT UNSIGNED NOT NULL,
+  followed_user_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (follower_user_id, followed_user_id),
+  CONSTRAINT fk_follows__follower FOREIGN KEY (follower_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_follows__followed FOREIGN KEY (followed_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE likes (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  entity_type ENUM('photo','comment','post','product') NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_like (user_id, entity_type, entity_id),
+  INDEX idx_like_entity (entity_type, entity_id),
+  CONSTRAINT fk_likes__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE comments (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  entity_type ENUM('photo','post','product') NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  parent_id BIGINT UNSIGNED NULL,
+  content TEXT NOT NULL,
+  is_pinned TINYINT(1) NOT NULL DEFAULT 0,
+  is_edited TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  deleted_at DATETIME NULL,
+  INDEX idx_comment_entity (entity_type, entity_id),
+  CONSTRAINT fk_comments__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_comments__parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE bookmarks (
+  user_id BIGINT UNSIGNED NOT NULL,
+  entity_type ENUM('photo','post','product') NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, entity_type, entity_id),
+  CONSTRAINT fk_bookmarks__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE reports (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  reporter_user_id BIGINT UNSIGNED NOT NULL,
+  entity_type ENUM('user','photo','comment','message','product','order') NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  reason VARCHAR(255) NOT NULL,
+  details TEXT NULL,
+  status ENUM('open','reviewing','actioned','dismissed') NOT NULL DEFAULT 'open',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reports__users FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- MESSAGING & NOTIFICATIONS
+-- =========================
+CREATE TABLE conversations (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  type ENUM('direct','group') NOT NULL DEFAULT 'direct',
+  title VARCHAR(200) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_conversations__users FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE conversation_participants (
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role ENUM('member','admin') NOT NULL DEFAULT 'member',
+  joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_read_message_id BIGINT UNSIGNED NULL,
+  PRIMARY KEY (conversation_id, user_id),
+  CONSTRAINT fk_conv_part__conv FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_conv_part__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE messages (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  sender_user_id BIGINT UNSIGNED NOT NULL,
+  body TEXT NULL,
+  asset_id BIGINT UNSIGNED NULL, -- attachment
+  type ENUM('text','image','system') NOT NULL DEFAULT 'text',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  INDEX idx_messages_conv (conversation_id, id),
+  CONSTRAINT fk_messages__conv FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages__users FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages__assets FOREIGN KEY (asset_id) REFERENCES media_assets(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE notifications (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  payload JSON NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notifications__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE notification_preferences (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  channel ENUM('email','push','sms','inapp') NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uk_notif_pref (user_id, channel, type),
+  CONSTRAINT fk_notif_prefs__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- CMS / BLOG
+-- =========================
+CREATE TABLE pages (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(200) NOT NULL UNIQUE,
+  title VARCHAR(200) NOT NULL,
+  content MEDIUMTEXT NULL,
+  seo_title VARCHAR(200) NULL,
+  seo_description VARCHAR(300) NULL,
+  seo_image_url VARCHAR(500) NULL,
+  status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+  published_at DATETIME NULL,
+  created_by BIGINT UNSIGNED NULL,
+  updated_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_pages__users_created FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_pages__users_updated FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE posts (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(200) NOT NULL UNIQUE,
+  title VARCHAR(200) NOT NULL,
+  excerpt TEXT NULL,
+  content MEDIUMTEXT NULL,
+  cover_image_url VARCHAR(500) NULL,
+  status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+  author_user_id BIGINT UNSIGNED NULL,
+  published_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_posts__users FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE post_tags (
+  post_id BIGINT UNSIGNED NOT NULL,
+  tag_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (post_id, tag_id),
+  CONSTRAINT fk_post_tags__posts FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_post_tags__tags FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- COMMERCE (PRINTS, DIGITAL, MARKETPLACE)
+-- =========================
+CREATE TABLE product_categories (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  parent_id BIGINT UNSIGNED NULL,
+  slug VARCHAR(150) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  position INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_prod_cat__parent FOREIGN KEY (parent_id) REFERENCES product_categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE products (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  owner_user_id BIGINT UNSIGNED NULL, -- photographer if marketplace
+  sku VARCHAR(64) NULL UNIQUE,
+  slug VARCHAR(150) NOT NULL UNIQUE,
+  name VARCHAR(200) NOT NULL,
+  description MEDIUMTEXT NULL,
+  type ENUM('digital','print','service') NOT NULL,
+  status ENUM('draft','active','inactive','archived') NOT NULL DEFAULT 'draft',
+  base_price_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  vat_rate DECIMAL(5,2) NULL, -- e.g., 21.00 for CZ
+  commission_rate DECIMAL(5,2) NULL, -- platform %
+  max_purchase_qty INT UNSIGNED NULL,
+  weight_grams INT UNSIGNED NULL,
+  dimensions_cm VARCHAR(50) NULL,
+  main_image_url VARCHAR(500) NULL,
+  metadata JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_products__users FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE product_category_links (
+  product_id BIGINT UNSIGNED NOT NULL,
+  category_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (product_id, category_id),
+  CONSTRAINT fk_pcl__product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_pcl__category FOREIGN KEY (category_id) REFERENCES product_categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE product_images (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  asset_id BIGINT UNSIGNED NULL,
+  image_url VARCHAR(500) NULL,
+  position INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_product_images__product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_product_images__asset FOREIGN KEY (asset_id) REFERENCES media_assets(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE product_variants (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  sku VARCHAR(64) NULL UNIQUE,
+  name VARCHAR(150) NULL, -- e.g., A3 matte, 30x40cm, etc.
+  price_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  cost_cents INT UNSIGNED NULL,
+  stock_qty INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  weight_grams INT UNSIGNED NULL,
+  dimensions_cm VARCHAR(50) NULL,
+  metadata JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  CONSTRAINT fk_product_variants__product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE coupons (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  type ENUM('percent','fixed') NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  currency CHAR(3) NULL, -- only for fixed
+  max_redemptions INT UNSIGNED NULL,
+  per_user_limit INT UNSIGNED NULL,
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  min_order_cents INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE carts (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  session_id CHAR(36) NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_cart_session (session_id),
+  CONSTRAINT fk_carts__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE cart_items (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  cart_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL,
+  variant_id BIGINT UNSIGNED NULL,
+  quantity INT UNSIGNED NOT NULL,
+  unit_price_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL,
+  added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_cart_items__cart FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_cart_items__product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_cart_items__variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE orders (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  order_number VARCHAR(32) NOT NULL UNIQUE,
+  status ENUM('pending','awaiting_payment','paid','fulfilled','partially_fulfilled','cancelled','refunded') NOT NULL DEFAULT 'pending',
+  currency CHAR(3) NOT NULL,
+  subtotal_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  discount_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  shipping_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  tax_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  total_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  vat_number VARCHAR(32) NULL,
+  billing_address_id BIGINT UNSIGNED NULL,
+  shipping_address_id BIGINT UNSIGNED NULL,
+  coupon_id BIGINT UNSIGNED NULL,
+  placed_at DATETIME NULL,
+  paid_at DATETIME NULL,
+  cancelled_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_orders__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_orders__billing FOREIGN KEY (billing_address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+  CONSTRAINT fk_orders__shipping FOREIGN KEY (shipping_address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+  CONSTRAINT fk_orders__coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE order_items (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL,
+  variant_id BIGINT UNSIGNED NULL,
+  owner_user_id BIGINT UNSIGNED NULL, -- for marketplace payouts
+  name VARCHAR(200) NOT NULL,
+  sku VARCHAR(64) NULL,
+  quantity INT UNSIGNED NOT NULL,
+  unit_price_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL,
+  vat_rate DECIMAL(5,2) NULL,
+  total_cents INT UNSIGNED NOT NULL,
+  metadata JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_order_items__order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_items__product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_order_items__variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
+  CONSTRAINT fk_order_items__owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE payments (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT UNSIGNED NOT NULL,
+  provider ENUM('stripe','paypal','bank_transfer','cod') NOT NULL,
+  provider_payment_id VARCHAR(100) NULL,
+  amount_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL,
+  status ENUM('pending','authorized','captured','failed','refunded','cancelled') NOT NULL,
+  failure_reason VARCHAR(255) NULL,
+  captured_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payments__orders FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE payment_refunds (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  payment_id BIGINT UNSIGNED NOT NULL,
+  amount_cents INT UNSIGNED NOT NULL,
+  reason VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payment_refunds__payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE shipping_methods (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  price_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  regions JSON NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB;
+
+CREATE TABLE shipments (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT UNSIGNED NOT NULL,
+  carrier VARCHAR(100) NULL,
+  service_level VARCHAR(100) NULL,
+  tracking_number VARCHAR(100) NULL,
+  tracking_url VARCHAR(500) NULL,
+  status ENUM('pending','packed','shipped','delivered','lost','returned') NOT NULL DEFAULT 'pending',
+  shipped_at DATETIME NULL,
+  delivered_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shipments__orders FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE shipment_items (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  shipment_id BIGINT UNSIGNED NOT NULL,
+  order_item_id BIGINT UNSIGNED NOT NULL,
+  quantity INT UNSIGNED NOT NULL,
+  CONSTRAINT fk_shipment_items__shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_shipment_items__order_item FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE invoices (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT UNSIGNED NOT NULL,
+  invoice_number VARCHAR(32) NOT NULL UNIQUE,
+  issued_at DATETIME NOT NULL,
+  due_at DATETIME NULL,
+  total_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL,
+  vat_summary JSON NULL,
+  pdf_url VARCHAR(500) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_invoices__orders FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE marketplace_payouts (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  payee_user_id BIGINT UNSIGNED NOT NULL,
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  total_gross_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  platform_fee_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  vat_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  total_net_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  status ENUM('pending','processing','paid','failed') NOT NULL DEFAULT 'pending',
+  paid_at DATETIME NULL,
+  payout_reference VARCHAR(100) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_marketplace_payouts__users FOREIGN KEY (payee_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE earnings_ledger (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL, -- seller/photographer
+  order_item_id BIGINT UNSIGNED NULL,
+  type ENUM('sale','refund','adjustment','fee') NOT NULL,
+  amount_cents INT NOT NULL,
+  currency CHAR(3) NOT NULL,
+  description VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_earnings_ledger__user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_earnings_ledger__order_item FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- =========================
+-- SUBSCRIPTIONS (for premium features)
+-- =========================
+CREATE TABLE plans (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  price_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CZK',
+  interval_unit ENUM('day','week','month','year') NOT NULL,
+  interval_count INT UNSIGNED NOT NULL DEFAULT 1,
+  trial_days INT UNSIGNED NULL,
+  features JSON NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE subscriptions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  plan_id BIGINT UNSIGNED NOT NULL,
+  status ENUM('active','past_due','canceled','incomplete','trialing') NOT NULL,
+  current_period_start DATETIME NOT NULL,
+  current_period_end DATETIME NOT NULL,
+  cancel_at_period_end TINYINT(1) NOT NULL DEFAULT 0,
+  provider ENUM('stripe','manual') NOT NULL DEFAULT 'stripe',
+  provider_sub_id VARCHAR(100) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_subscriptions__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_subscriptions__plans FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE subscription_invoices (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  subscription_id BIGINT UNSIGNED NOT NULL,
+  amount_cents INT UNSIGNED NOT NULL,
+  currency CHAR(3) NOT NULL,
+  status ENUM('open','paid','void','uncollectible') NOT NULL,
+  issued_at DATETIME NOT NULL,
+  paid_at DATETIME NULL,
+  provider_invoice_id VARCHAR(100) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_sub_inv__sub FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- EMAIL / QUEUE / CONSENT
+-- =========================
+CREATE TABLE email_templates (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  key_name VARCHAR(100) NOT NULL UNIQUE,
+  subject VARCHAR(200) NOT NULL,
+  body_html MEDIUMTEXT NULL,
+  body_text MEDIUMTEXT NULL,
+  locale VARCHAR(10) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE email_queue (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  to_email VARCHAR(255) NOT NULL,
+  to_name VARCHAR(150) NULL,
+  template_key VARCHAR(100) NULL,
+  subject_override VARCHAR(200) NULL,
+  body_html MEDIUMTEXT NULL,
+  body_text MEDIUMTEXT NULL,
+  payload JSON NULL,
+  status ENUM('queued','sending','sent','failed') NOT NULL DEFAULT 'queued',
+  last_error TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  sent_at DATETIME NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE consents (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  type ENUM('privacy','terms','marketing','cookies') NOT NULL,
+  version VARCHAR(20) NOT NULL,
+  granted TINYINT(1) NOT NULL,
+  ip VARBINARY(16) NULL,
+  user_agent VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_consent (user_id, type, version),
+  CONSTRAINT fk_consents__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE gdpr_requests (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  type ENUM('export','delete','rectify') NOT NULL,
+  status ENUM('received','processing','completed','rejected') NOT NULL DEFAULT 'received',
+  requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME NULL,
+  notes TEXT NULL,
+  CONSTRAINT fk_gdpr__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- LOGS / ANALYTICS / WEBHOOKS
+-- =========================
+CREATE TABLE event_logs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  session_id CHAR(36) NULL,
+  event_name VARCHAR(150) NOT NULL,
+  properties JSON NULL,
+  path VARCHAR(255) NULL,
+  referrer VARCHAR(500) NULL,
+  ip VARBINARY(16) NULL,
+  user_agent VARCHAR(255) NULL,
+  occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_event_logs_name_time (event_name, occurred_at),
+  CONSTRAINT fk_event_logs__users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE error_logs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  level ENUM('debug','info','warning','error','critical') NOT NULL DEFAULT 'error',
+  message TEXT NOT NULL,
+  context JSON NULL,
+  occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE webhooks (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  secret VARCHAR(100) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  events JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE webhook_events (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  webhook_id BIGINT UNSIGNED NOT NULL,
+  event_name VARCHAR(150) NOT NULL,
+  payload JSON NOT NULL,
+  status ENUM('queued','delivered','failed','disabled') NOT NULL DEFAULT 'queued',
+  last_error TEXT NULL,
+  delivered_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_webhook_events__webhooks FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =========================
+-- SEARCH SUPPORT (optional)
+-- =========================
+CREATE TABLE search_index (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  entity_type ENUM('photo','post','product','user') NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(255) NULL,
+  content LONGTEXT NULL,
+  tags TEXT NULL,
+  locale VARCHAR(10) NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_search_entity (entity_type, entity_id),
+  FULLTEXT KEY ft_search (title, content, tags)
+) ENGINE=InnoDB;
+
+-- Useful views (examples)
+-- CREATE VIEW v_active_products AS SELECT id, name, base_price_cents FROM products WHERE status='active' AND deleted_at IS NULL;
+
+SET FOREIGN_KEY_CHECKS = 1;
