@@ -1,12 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" class="no-js">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Project D850</title>
+    <meta name="description" content="Project D850 — professional photography portfolios, projects, and tools." />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#fdf6e3" />
+    <meta name="color-scheme" content="light" />
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
+
+    <!-- Favicon / PWA (safe defaults; remove if you don't use them) -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph / Twitter (basic, non-breaking) -->
+    <meta property="og:title" content="Project D850" />
+    <meta property="og:description" content="Professional photography portfolios, projects, and tools." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
-  <body>
-    <div id="root"></div>
+
+  <body style="background:#fdf6e3;">
+    <noscript>
+      <strong>
+        Project D850 needs JavaScript enabled to run correctly. Please enable it in your browser settings.
+      </strong>
+    </noscript>
+
+    <div id="root" aria-live="polite"></div>
+
+    <!-- Replace 'no-js' class once JS is available (tiny a11y/UX enhancement) -->
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

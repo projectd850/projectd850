@@ -1,0 +1,19 @@
+/* ===== Skip link (a11y) ===== */
+.skip-link {
+  position: absolute;
+  top: -40px; /* hidden offscreen */
+  left: 0;
+  background: var(--brand, #800020);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius, 12px);
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 1000;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 10px; /* slide into view */
+  box-shadow: 0 8px 20px rgba(0,0,0,.2);
+}

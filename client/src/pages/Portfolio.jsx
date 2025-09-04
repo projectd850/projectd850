@@ -27,16 +27,16 @@ const Portfolio = () => {
             decoding="async"
             sizes="100vw"
             width="1600"
-            height="900"
+            height="1000" /* 16:10 to prevent CLS */
             onError={(e) => {
               e.currentTarget.onerror = null;
-              e.currentTarget.src = "https://via.placeholder.com/1600x900?text=Image+Unavailable";
+              e.currentTarget.src = "https://via.placeholder.com/1600x1000?text=Image+Unavailable";
             }}
           />
         </div>
       </section>
 
-      {/* LISTA */}
+      {/* LIST */}
       <section className="portfolio-right" aria-label="Public portfolios list">
         <h1 className="portfolio-title">Public Portfolios</h1>
         <p className="portfolio-description">
@@ -60,13 +60,13 @@ const Portfolio = () => {
                   alt={`${item.name} portfolio cover`}
                   loading="lazy"
                   decoding="async"
-                  /* za kartice: na mobilu ~100vw/kolone, na desktopu ~33-50vw */
-                  sizes="(max-width: 480px) 100vw, (max-width: 900px) 50vw, 33vw"
+                  /* cards: ~100vw per column on mobile, ~33–50vw on desktop */
+                  sizes="(max-width: 480px) 100vw, (max-width: 980px) 50vw, 33vw"
                   width="600"
-                  height="400"
+                  height="375" /* 16:10 for consistency */
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    e.currentTarget.src = "https://via.placeholder.com/600x400?text=Image+Error";
+                    e.currentTarget.src = "https://via.placeholder.com/600x375?text=Image+Error";
                   }}
                 />
                 <figcaption className="overlay">

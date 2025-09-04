@@ -2,7 +2,7 @@
 :root {
   --bg: #fdf6e3;
   --text: #000;
-  --muted: #333;
+  --muted:#333;
   --padX: clamp(1rem, 4vw, 3rem);
   --padY: clamp(1rem, 4vw, 3rem);
 
@@ -10,10 +10,13 @@
   --p:  clamp(1rem, 2.5vw, 1.1rem);
 
   --radius: 12px;
-  --shadow: 0 8px 24px rgba(0,0,0,.08);
+  --shadow: 0 10px 24px rgba(0,0,0,.08);
   --overlay: rgba(0,0,0,.5);
+
+  --cardBorder: 1px solid #eee;
 }
 
+/* ===== Layout (keep your structure) ===== */
 .portfolio-section {
   display: flex;
   flex-direction: column;
@@ -31,32 +34,34 @@
 
 .portfolio-left .image-container {
   width: 100%;
-  /* aspect-ratio stabilizuje layout dok se slika učitava, bolje od fiksne vh */
-  aspect-ratio: 16/9;
+  /* aspect-ratio stabilizes layout while image loads */
+  aspect-ratio: 16/10;        /* guardrail */
   min-height: 260px;
   max-height: 70vh;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* V‑strelica: uključujemo je tek na većim ekranima da ne “seče” sadržaj na mobilnom */
-  clip-path: none;
+  clip-path: none;             /* no clip on mobile */
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 980px) {
   .portfolio-left .image-container {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%);
+    /* clean bottom V-notch (decorative, professional) */
+    clip-path: polygon(0% 0%, 100% 0%, 100% 86%, 50% 100%, 0% 86%);
   }
 }
 
 .portfolio-left img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover;           /* guardrail */
   display: block;
 }
 
-/* ===== LISTA / TEKST ===== */
+/* ===== LIST / TEXT ===== */
 .portfolio-right {
   width: 100%;
   padding: var(--padY) var(--padX);
@@ -82,11 +87,11 @@
   line-height: 1.6;
 }
 
-/* ===== GALERIJA ===== */
+/* ===== GALLERY ===== */
 .gallery-grid {
   display: grid;
-  /* fleksibilnija mreža: kartice rastu do 1fr, minimum taman za mobilni */
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* flexible grid: cards grow to 1fr, mobile-first */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   width: 100%;
 }
@@ -97,16 +102,18 @@
   border-radius: var(--radius);
   cursor: pointer;
   text-decoration: none;
+  background: #fff;            /* guardrail: white card */
+  border: var(--cardBorder);   /* guardrail: 1px #eee */
   box-shadow: var(--shadow);
   outline: none;
-  background: #000; /* da se fade-in slike ne vide kao “praznina” */
+  transition: transform .2s ease, box-shadow .2s ease;
 }
 
-/* stabilna visina kartica na svim uređajima */
+/* stable card height */
 .gallery-item figure {
   margin: 0;
   width: 100%;
-  aspect-ratio: 4/3;
+  aspect-ratio: 16/10;         /* align with media block */
   display: grid;
   place-items: stretch;
 }
@@ -116,14 +123,18 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  transform: scale(1.0001); /* mikro-fix protiv hairline praznina u nekim browserima */
+  transform: translateZ(0);
   transition: transform .35s ease;
 }
 
-/* Hover efekti samo kada je dostupan pravi hover (ne na touch) */
+/* Hover effects only on real hover devices */
 @media (hover: hover) and (pointer: fine) {
+  .gallery-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  }
   .gallery-item:hover img {
-    transform: scale(1.05);
+    transform: scale(1.045);
   }
   .gallery-item:hover .overlay {
     opacity: 1;
@@ -131,10 +142,10 @@
 }
 
 .gallery-item:focus-visible {
-  box-shadow: 0 0 0 3px rgba(0,0,0,.2), 0 0 0 6px rgba(0,0,0,.15);
+  box-shadow: 0 0 0 3px rgba(128,0,32,.18), var(--shadow);
 }
 
-/* Overlay naslov */
+/* Overlay label */
 .gallery-item .overlay {
   position: absolute;
   inset: auto 0 0 0;
@@ -147,12 +158,12 @@
   transition: opacity .25s ease;
 }
 
-/* Uvek pokaži overlay na mobilnom (nema hover) */
+/* Always show overlay on touch (no hover) */
 @media (hover: none) {
   .gallery-item .overlay { opacity: 1; }
 }
 
-/* ===== Animacije ===== */
+/* ===== Animations ===== */
 @keyframes fadeInText {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -160,10 +171,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .portfolio-right { animation: none; }
-  .gallery-item img { transition: none; }
+  .gallery-item, .gallery-item img { transition: none; }
 }
 
-/* ===== Sitni responsive tweakovi ===== */
-@media (max-width: 768px) {
+/* ===== Small responsive tweaks ===== */
+@media (max-width: 980px) {
   .gallery-grid { gap: 12px; }
 }

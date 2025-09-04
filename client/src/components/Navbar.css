@@ -1,4 +1,4 @@
-/* ===== Tokens ===== */
+/* ===== Tokens (respect ProjectD850 guardrails) ===== */
 :root{
   --bg:#fdf6e3;
   --text:#333;
@@ -9,10 +9,10 @@
   --shadow:0 2px 8px rgba(0,0,0,.06);
 
   --padX: clamp(12px, 4vw, 28px);
-  --h: 64px; /* visina headera */
+  --h: 64px; /* header height */
 }
 
-/* Header container (sticky + blur) */
+/* Header container (sticky + subtle blur) */
 .site-header{
   position: sticky;
   top: 0;
@@ -39,7 +39,7 @@
   text-decoration: none;
 }
 
-/* CENTER: primary links (mobile-first: skriveno, otvara se preko hamburgera) */
+/* CENTER: primary links (mobile-first: hidden, toggled by hamburger) */
 .navbar__links{
   display: none;
   gap: 14px;
@@ -57,8 +57,11 @@
   text-decoration: none;
   color: var(--text);
   font-weight: 600;
-  padding: 8px 6px;
+  padding: 10px 8px;
   border-radius: 8px;
+  min-height: 44px; /* a11y tap target */
+  display: inline-flex;
+  align-items: center;
   transition: color .2s ease, background-color .2s ease;
 }
 .nav-link:hover{ color: var(--brand); background: #f0e6d6; }
@@ -79,20 +82,21 @@
   display: inline-flex;
   align-items: center; justify-content: center;
   text-decoration: none;
-  min-height: 40px;
-  padding: 8px 14px;
-  border-radius: 10px;
+  min-height: 44px; /* a11y tap target */
+  padding: 10px 16px;
+  border-radius: 12px;
   font-weight: 700;
   border: 1px solid transparent;
-  transition: transform .15s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+  transition: transform .15s ease, background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
-.btn--ghost{
+.btn--outline{
   background: transparent;
   color: var(--brand);
   border-color: var(--brand);
 }
-.btn--ghost:hover{
+.btn--outline:hover{
   background:#f0e6d6;
+  box-shadow: 0 8px 22px rgba(128,0,32,.12);
   transform: translateY(-1px);
 }
 .btn--primary{
@@ -106,26 +110,29 @@
   transform: translateY(-1px);
 }
 
-/* Dropdowns (klik radi i na touch) */
+/* Dropdowns (click works on touch) */
 .dropdown{ position: relative; }
 .dropbtn{
-  min-height: 40px;
-  padding: 8px 10px;
-  border-radius: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
   background: transparent;
   border: 1px solid #ddd;
   cursor: pointer;
   font-weight: 700;
   color: var(--text);
+  transition: background-color .15s ease, box-shadow .15s ease;
 }
 .dropbtn:hover{ background:#f7f2e9; }
+.dropbtn:focus-visible{ outline: none; box-shadow: 0 0 0 3px rgba(128,0,32,.18); }
 
 .dropdown__menu{
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
   min-width: 220px;
-  background: var(--bg);
+  background: #fff;
+  border: 1px solid #eee;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,.12);
   padding: 6px;
@@ -142,6 +149,8 @@
   text-decoration: none;
   white-space: nowrap;
   transition: background-color .15s ease, color .15s ease;
+  min-height: 44px;
+  line-height: 24px;
 }
 .dropdown__item:hover{
   background: #f0e6d6;
@@ -152,24 +161,34 @@
 .hamburger{
   display: inline-flex;
   flex-direction: column;
-  gap: 4px;
-  width: 42px; height: 42px;
+  gap: 5px;
+  width: 44px; height: 44px;
   align-items: center; justify-content: center;
   background: transparent;
   border: 1px solid #ddd;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
+  transition: background-color .15s ease, box-shadow .15s ease;
 }
+.hamburger:hover{ background:#f7f2e9; }
 .hamburger span{
   width: 20px; height: 2px; background: #222; display: block;
   transition: transform .2s ease, opacity .2s ease;
 }
-.hamburger.is-open span:nth-child(1){ transform: translateY(6px) rotate(45deg); }
+.hamburger.is-open span:nth-child(1){ transform: translateY(7px) rotate(45deg); }
 .hamburger.is-open span:nth-child(2){ opacity: 0; }
-.hamburger.is-open span:nth-child(3){ transform: translateY(-6px) rotate(-45deg); }
+.hamburger.is-open span:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
 
-/* ===== Desktop layout ===== */
-@media (min-width: 960px){
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .btn, .hamburger span, .nav-link{ transition: none; }
+  .hamburger.is-open span:nth-child(1),
+  .hamburger.is-open span:nth-child(3){ transform: none; }
+  .hamburger.is-open span:nth-child(2){ opacity: 1; }
+}
+
+/* ===== Desktop layout (guardrail: breakpoint 980px) ===== */
+@media (min-width: 980px){
   .navbar{
     grid-template-columns: auto 1fr auto; /* logo | links | actions */
   }
